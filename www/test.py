@@ -8,7 +8,7 @@ from models import User, Blog, Comment
 @asyncio.coroutine
 def test():
 	yield from orm.create_pool(loop=loop, user='www-data', password='www-data', db='awesome')
-	# 创建连接池，连接schema.sql
+	# 创建连接池，连接schema.sql,传入的参数与schema.sql中相对应
 	u = User(id=1, name='Test', email='test@example.com', passwd='1234567890', image='about:blank')
 	u1 = User(id=2, name='Test1', email='test1@example.com', passwd='12345678901', image='about:blank')
 	u2 = User(id=3, name='Test2', email='test2@example.com', passwd='12345678902', image='about:blank')
@@ -33,12 +33,9 @@ def test():
 
 	logging.info('test finished...')
 	print('=====================================================================================================')
-	
-
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(test())
-
 loop.close()
 
 '''初始化数据库表:如果表的数量很少，可以手写创建表的SQL脚本：schema.sql

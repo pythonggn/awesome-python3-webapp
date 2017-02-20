@@ -171,10 +171,10 @@ class ModelMetaclass(type):
 		# 遍历类的属性,找出定义的域(如【StringField】,字符串域)内的值,建立映射关系
         # k是属性名,v其实是定义域!请看name=StringField(ddl="varchar50")
 		for k, v in attrs.items():
-			#k,v-->{'属性名'：'列名'}
 			# k是类的一个属性，v是这个属性在数据库中对应的Field列表属性
 			#attrs是User类的属性集合，是一个dict，需要通过items函数转换为[(k1,v1),(k2,v2)]这种形式，才能用for k, v in来循环
-			''' >>> {'id': IntegerField(), 'name': StringField()} 
+			''' >>> {'id': IntegerField(), 'name': StringField()}  
+					k是'id', v是IntegerField  k是'name', v是StringField
 				>>> d.items() 
 				[('id', IntegerField()), ('name', StringField())] '''
 			if isinstance(v, Field):
@@ -186,7 +186,7 @@ class ModelMetaclass(type):
 						raise StandardError('Duplicate primary key for field: %s' % k)
 						#主键重复/已存在
 					primaryKey = k 
-					#主键只有一个？？
+					#主键一般只有一个
 				else:  # v.primary_key = False,区别主键和非主键
 					fields.append(k)
 		# primaryKey设置完毕
@@ -254,13 +254,13 @@ class Model(dict, metaclass=ModelMetaclass):
 		if value is None:
 			#属性不存在
 			#该对象的该属性还没有赋值，就去获取它对应的列的默认值
-			field = self.__mappings__[key] #对应的列 # field是一个定义域!比如StringField()
+			field = self.__mappings__[key] #对应的列 # field是一个定义域!比如StringField
 			#(结合上文ModelMetaclass,attrs['__mappings__'] = mappings)
 			if field.default is not None:
 				#field.default见继承自Model的更下层类的具体对象的定义,如User的对象
-				# 看例子你就懂了
+				# 看models.py中的例子就懂了
                 # id的StringField.default=next_id,因此调用该函数生成独立id
-                # FloatFiled.default=time.time数,因此调用time.time函数返回当前时间
+                # FloatField.default=time.time数,因此调用time.time函数返回当前时间
                 # 普通属性的StringField默认为None,因此还是返回None
 				value = field.default() if callable(field.default) else field.default
 				#类是可调用的，而类的实例实现了__call__()方法才可调用
