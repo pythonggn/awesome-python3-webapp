@@ -1,5 +1,7 @@
 __author__ = 'ggn'
 
+# url处理函数
+
 import models # Web App需要的3个表, User, Blog, Comment, 类到表的映射
 
 from coroweb import get, post 
