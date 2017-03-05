@@ -12,9 +12,11 @@ def test():
 	u = User(id=1, name='Test', email='test@example.com', passwd='1234567890', image='about:blank')
 	u1 = User(id=2, name='Test1', email='test1@example.com', passwd='12345678901', image='about:blank')
 	u2 = User(id=3, name='Test2', email='test2@example.com', passwd='12345678902', image='about:blank')
+	u3 = User(id=4, name='好累啊', email='妈个姬@example.com', passwd='12345678903', image='about:blank')
 	yield from u.save()
 	yield from u1.save()
 	yield from u2.save()
+	yield from u3.save()
 	print('=====================================================================================================')
 	logging.info('test began...')
 	#测试findAll()：
