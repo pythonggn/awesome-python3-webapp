@@ -1,3 +1,5 @@
+__author__ = 'ggn'
+
 import asyncio
 import logging;logging.basicConfig(level=logging.INFO)
 import orm

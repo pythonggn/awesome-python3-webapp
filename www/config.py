@@ -1,9 +1,8 @@
+__author__ = 'ggn'
 '''
 应用程序读取配置文件需要优先从config_override.py读取。
 为了简化读取配置文件，可以把所有配置读取到统一的config.py中：
 '''
-
-__author__ = 'ggn'
 
 import config_default
 

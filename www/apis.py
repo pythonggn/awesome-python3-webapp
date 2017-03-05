@@ -1,3 +1,5 @@
+__author__ = 'ggn'
+
 '''JSON API definition'''
 
 import json, logging, inspect, functools

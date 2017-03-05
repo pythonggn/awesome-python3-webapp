@@ -1,3 +1,5 @@
+__author__ = 'ggn'
+
 #有了ORM，我们就可以把Web App需要的3个表用Model表示出来：
 
 import time, uuid 
