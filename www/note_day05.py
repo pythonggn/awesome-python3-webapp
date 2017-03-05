@@ -159,3 +159,5 @@ __call__ executed
 f = Foo()
 f()  又输出啥?  __call__ executed
 '''
+
+'本文件仅做参考，程序运行中不起作用'
