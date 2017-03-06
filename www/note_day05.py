@@ -3,18 +3,23 @@ __author__ = 'ggn'
 '本文件仅做参考，程序运行中不起作用'
 #从使用者的角度来说，aiohttp相对比较底层，我们还需要自己封装一个Web框架。
 #aiohttp编写一个URL的处理函数：
-#第一步，编写一个用@asyncio.coroutine装饰的函数：
+
+'第一步，编写一个用@asyncio.coroutine装饰的函数：'
 @asyncio.coroutine
-def handle_url_xxx(request): #request是个函数？
+def handle_url_xxx(request): 
+	#如index(request),处理首页url的函数
+	#request由web模块(根据url？)自动生成
 	pass
-#第二步，传入的参数需要自己从上面的request中获取：
+
+'第二步，传入的参数需要自己从上面的request中获取：'
 url_param = request.match_info['key']
 query_params = parse_qs(request.query_string)
-#最后，需要自己构造Response对象：
+
+'最后，需要自己构造Response对象：'
 text = render('template', data)
 return web.Response(text.encode('utf-8'))
 
-#处理带参数的URL/blog/{id}
+#处理带参数的URL/blog/{id}--url处理函数
 @get('/blog/{id}')
 def get_blog(id):
 	pass
@@ -33,7 +38,8 @@ return {
 	}
 #Web框架的设计是完全从使用者出发，目的是让使用者编写尽可能少的代码。
 
-#要把一个函数映射为一个URL处理函数，我们先定义@get()：
+
+'把一个函数映射为一个URL处理函数，我们先定义@get()：'
 def get(path):
 	'''
 	Define decorator @get('/path')
@@ -102,7 +108,7 @@ def add_routes(app, module_name):
 #最后，在app.py中加入middleware、jinja2模板和自注册的支持：
 app = web.Application(loop=loop, middlewares=[
 	logger_factory, response_factory
-])#web.Application处理http请求？
+])#web.Application实例
 #middleware是一种拦截器，一个URL在被某个函数处理前，可以经过一系列的middleware的处理。
 init_jinjia2(app, filters=dict(datetime=datetime_filter))
 #Jinja2是基于python的模板引擎,Flask使用jinja2作为框架的模板系统
@@ -140,8 +146,7 @@ def response_factory(app, handler):
 			...
 
 #有了这些基础设施，我们就可以专注地往handlers模块不断添加URL处理函数了，可以极大地提高开发效率。
-coroweb.py 
-handlers.py 
+
 '''
 测试：
 class Foo(object):

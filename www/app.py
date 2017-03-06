@@ -88,7 +88,7 @@ async def data_factory(app, handler):
 	return parse_data
 
 # 上面2个middle factory是在url处理函数之前先对请求进行了处理,以下则在url处理函数之后进行处理
-# 其将request handler的返回值转换为web.Response对象,以保证满足aiohttp的要求
+# 其将request handler的返回值(返回的response)转换为web.Response对象,以保证满足aiohttp的要求
 async def response_factory(app, handler):
 	async def response(request):
 		logging.info('Response handler...')
@@ -187,6 +187,7 @@ async def init(loop):
 	# 最终执行到app.router.add_route(method, path, RequestHandler(app, fn))
 	add_static(app) # 将本文件同目录下的static目录(即www/static/)加入到应用的路由管理器中
 	srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+	# make_handler()--Creates HTTP protocol factory for handling requests.
 	# 调用子协程:创建一个TCP服务器,绑定到"127.0.0.1:9000"socket,并返回一个服务器对象
 	# 127.0.0.1为本机地址 端口可以是9000,9001...；进行监听
 	logging.info('server started at http://127.0.0.1:9000...')

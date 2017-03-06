@@ -9,8 +9,9 @@ from urllib import parse
 from aiohttp import web
 
 from apis import APIError
-#导入自定义的api错误模块
-def get(path):
+# 导入自定义的api错误模块
+# 把一个函数映射为一个URL处理函数
+def get(path): 
 	'''
 	Define decorator @get('/path')
 	@get('/path')
@@ -29,8 +30,9 @@ def get(path):
 		wrapper.__route__ = path
 		return wrapper
 	return decorator
+# 一个函数通过@get()的装饰就附带了URL信息
 # 定义了一个装饰器
-# 将一个函数映射(装饰)为一个URL处理函数
+# 将一个函数【映射(装饰)为一个URL处理函数】
 def post(path):
 	'''
 	Define decorator @post('/path')
@@ -118,7 +120,7 @@ def has_request_arg(fn): # 函数fn是否有请求关键字
         	# request参数必须是最后一个命名参数
 	return found
 
-# 定义RequestHandler类,封装url处理函数
+# 定义RequestHandler类,【封装】url处理函数,即handler=>fn,如handles.py中定义的index(request)
 # RequestHandler的目的是从url函数中分析需要提取的参数,从request中获取必要的参数
 # 调用url函数,将结果转换为web.response
 class RequestHandler(object):
@@ -140,7 +142,7 @@ class RequestHandler(object):
     	# 此处参数为request
     	# request参数为aiohttp.web.Request类的实例（aiohttp.web已导入）
     	# You should never create the Request instance manually – aiohttp.web does it for you. 
-    	# request参数自动根据传入的fn匹配创建
+    	# request参数根据url自动生成
     	# 具有Request类中定义的方法及其父类BaseRequest中定义的方法
 		# http://aiohttp.readthedocs.io/en/stable/web_reference.html#aiohttp.web.Request
 		# http://aiohttp.readthedocs.io/en/stable/_modules/aiohttp/web_reqrep.html#BaseRequest
@@ -220,9 +222,13 @@ class RequestHandler(object):
 					return web.HTTPBadRequest('Missing argument: %s' % name)
 					# 前面self._named_kw_args中copy过了，这里用子集self._required_kw_args再检查一遍
 		logging.info('call with args: %s' % str(kw))
+		
+
 		# 以上通过request.json()/request.post()/request.query_string/request.match_info从request中获得必要的参数
 
+		
 		# 以下调用handler处理,并返回response:
+		
 		try:
 			r = await self._func(**kw) # yield调用生成器(函数fn)
 			return r
@@ -251,7 +257,7 @@ def add_static(app):
     # app:An Application( aiohttp.web.Application) instance used to call request handler, Read-only property
     # http://aiohttp.readthedocs.io/en/stable/web_reference.html#aiohttp.web.Request
 
-# 编写一个add_route函数，用来注册一个URL处理函数fn：
+# 编写一个add_route函数，用来注册一个URL处理函数fn(经由RequestHandler(app, fn)封装),如index(request)：
 # 将处理函数注册fn到app上
 # 处理将针对http method 和path进行
 def add_route(app, fn):
