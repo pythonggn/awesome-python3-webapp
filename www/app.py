@@ -187,11 +187,11 @@ async def init(loop):
 	# 将handlers模块的url处理函数注册
 	# 最终执行到app.router.add_route(method, path, RequestHandler(app, fn))
 	add_static(app) # 将本文件同目录下的static目录(即www/static/)加入到应用的路由管理器中
-	srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9004)
+	srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9014)
 	# make_handler()--Creates HTTP protocol factory for handling requests.
 	# 调用子协程:创建一个TCP服务器,绑定到"127.0.0.1:9000"socket,并返回一个服务器对象
 	# 127.0.0.1为本机地址 端口可以是9000,9001...；进行监听
-	logging.info('server started at http://127.0.0.1:9004...')
+	logging.info('server started at http://127.0.0.1:9014...')
 	return srv #持续监听
 
 loop = asyncio.get_event_loop()

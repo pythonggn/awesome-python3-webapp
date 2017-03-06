@@ -285,13 +285,13 @@ class Model(dict, metaclass=ModelMetaclass):
 			args = []
 		orderBy = kw.get('orderBy', None)
 		if orderBy:
-			sql.append('orderBy')
-			sql.append(orderBy)      #['select `%s`, %s from `%s`', 'where', where语句, 'orderBy', orderBy语句]
+			sql.append('order by')
+			sql.append(orderBy)      #['select `%s`, %s from `%s`', 'where', where语句, 'order by', orderBy语句]
 		limit = kw.get('limit', None)
 		if limit is not None:
-			sql.append('limit')      #['select `%s`, %s from `%s`', 'where', where语句, 'orderBy', orderBy语句, 'limit']
+			sql.append('limit')      #['select `%s`, %s from `%s`', 'where', where语句, 'order by', orderBy语句, 'limit']
 			if isinstance(limit, int):
-				sql.append('?')      #['select `%s`, %s from `%s`', 'where', where语句, 'orderBy', orderBy语句, 'limit', '?']
+				sql.append('?')      #['select `%s`, %s from `%s`', 'where', where语句, 'order by', orderBy语句, 'limit', '?']
 				args.append(limit)		#[limit，是个int]
 			elif isinstance(limit, tuple) and len(limit) == 2:
 				

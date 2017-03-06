@@ -35,6 +35,39 @@ def index(request):
 		'__template__': 'blogs.html',
 		'blogs': blogs
 	}
+
+
+# 用户信息接口,用于返回机器能识别的用户信息
+@get('/api/users')
+async def api_get_users():
+	users = await User.findAll(orderBy='created_at desc') 
+	#orderBy='created_at desc' 刚开始加上这句话会报错,原因是orm.py中sql.append('orderBy')语句错误，正确应为sql.append('order by'),已改正。
+	for u in users:
+		u.password = '******'
+	return dict(users=users)
+	# 以dict形式返回,并且未指定__template__,将被app.py的response factory处理为json
+
+
+
+
+'''
+@get('/api/users')
+def api_get_users(*, page='1'):
+	page_index = get_page_index(page)
+	num = yield from User.findNumber('count(id)')
+	p = Page(num, page_index)
+	if num == 0:
+		return dict(page=p, users=())
+	users = yield from User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+	for u in users():
+		u.password = '******'
+	return dict(page=p, users=users)
+	# 只要返回一个dict，后续的response这个middleware就可以把结果序列化为JSON并返回。
+'''
+
+
+
+
 '''
 def handler(request):
     return web.Response()
