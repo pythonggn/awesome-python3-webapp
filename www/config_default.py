@@ -10,9 +10,9 @@ configs = {
 	'db':{
 		'host': '127.0.0.1',
 		'port': 3306,
-		'user': 'www-data',
-		'password': 'www-data'
-		'database': 'awesome'
+		'user': 'www-data', # or 'www'?
+		'password': 'www-data', # or 'www'?
+		'database': 'awesome' # or 'db'?
 	},
 	'session': { # 定义会话信息
 		'secret': 'AwEsOmE'

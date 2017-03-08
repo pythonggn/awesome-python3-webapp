@@ -47,7 +47,7 @@ def post(path):
 			return func(*args, **kw)
 		wrapper.__method__ = 'POST'
 		# 通过装饰器加上__method__属性,用于表示http method
-		wrapper.__route__ = 'path'
+		wrapper.__route__ = path
 		# 通过装饰器加上__route__属性,用于表示path
 		return wrapper
 	return decorator
@@ -85,7 +85,8 @@ def get_named_kw_args(fn): # 获取命名关键字参数名
 		# KEYWORD_ONLY, 表示命名关键字参数.
         # 因此下面的操作就是获得命名关键字参数名
 			args.append(name)
-		return tuple(args) #变成tuple
+	return tuple(args) #变成tuple
+	# 警告！此处return多打了个tab，导致后续严重错误，已改正。
 
 def has_named_kw_args(fn): # 判断函数fn是否带有命名关键字参数
 	params = inspect.signature(fn).parameters 

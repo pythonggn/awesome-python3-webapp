@@ -1,0 +1,98 @@
+<!-- 创建一个注册页面，让用户填写注册表单，然后，提交数据到注册用户的API -->
+{% extends '__base__.html' %}
+
+{% block title %}注册{% endblock %}
+
+{% block beforehead %}
+
+<script> //负责交互。handler.py中，get('/register')，register()返回注册页面即为本页面，之后通过交互点击提交按钮之类的，调用post('/api/users')，api_register_user(*, email, name, passwd)提交注册信息，实现用户注册
+// 用于检测输入email地址的正确性:
+function validateEmail(email) {
+	var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
+	// 定义email 地址的正则表达式
+	return re.test(email.toLowerCase());
+}
+$(function (){
+	var vm = new Vue({
+		el: '#vm',
+		data: {
+			name: '',
+			email: '',
+			password1: '',
+			password2: ''
+		},
+		methods: {
+			submit: function (event) {
+				event.preventDefault();
+				var $form = $('#vm'); // 通过id号取得表单信息
+				if (! this.name.trim()) {
+					return $form.showFormError('请输入名字');
+				}
+				if (! validateEmail(this.email.trim().toLowerCase())) {
+					return $form.showFormError('请输入正确的Email地址');
+				}
+				if (this.password1.length < 6) {
+					return $form.showFormError('口令长度至少为6个字符');
+				}
+				if (this.password1 !== this.password2) {
+					return $form.showFormError('两次输入的口令不一致');
+				}
+				var email = this.email.trim().toLowerCase();
+				$form.postJSON('/api/users', { // 将表单以json格式,post形式传输到/api/users
+					name: this.name.trim(), //handlers.py中针对post的用户注册api
+					email: email,
+					passwd: CryptoJS.SHA1(email + ':' + this.password1).toString()
+				}, function (err, r) {
+					if (err) {
+						return $form.showFormError(err);
+					}
+					return location.assign('/');
+				});
+			}
+		}
+	});
+	$('#vm').show();
+});
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+	<div class="uk-width-2-3">
+		<h1>欢迎注册！</h1>
+		<form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">
+			<div class="uk-alert uk-alert-danger uk-hidden"></div> 
+			<div class="uk-form-row">
+				<label class="uk-form-label">名字:</label>
+				<div class="uk-form-controls">
+					<input v-model="name" type="text" maxlength="50" placeholder="名字" class="uk-width-1-1">
+					<!-- <input> 标签用于搜集用户信息。根据不同的 type 属性值，输入字段拥有很多种形式。输入字段可以是文本字段、复选框、掩码后的文本控件、单选按钮、按钮等等。没有结束标签。-->
+				</div>
+			</div>
+			<div class="uk-form-row">
+				<label class="uk-form-label">电子邮件</label> 
+				<!-- 在 label 元素内点击文本，就会触发此控件。就是说，当用户选择该标签时，浏览器就会自动将焦点转到和标签相关的表单控件上。-->
+				<div class="uk-form-controls">
+					<input v-model="email" type="text" maxlength="50" placeholder="your-name@example.com" class="uk-width-1-1">
+				</div>
+			</div>
+			<div class="uk-form-row">
+				<label class="uk-form-label">输入口令:</label>
+				<div class="uk-form-controls">
+					<input v-model="password1" type="password" maxlength="50" placeholder="输入口令" class="uk-width-1-1">
+				</div>
+			</div>
+			<div class="uk-form-row">
+				<label class="uk-form-label">重复口令:</label>
+				<div class="uk-form-controls">
+					<input v-model="password2" type="password" maxlength="50" placeholder="重复口令" class="uk-width-1-1">
+				</div>
+			</div>
+			<div class="uk-form-row">
+				<button type="submit" class="uk-button uk-button-primary"><i class="uk-icon-user"></i>注册</button>
+			</div>
+		</form>
+	</div>
+
+{% endblock %}
