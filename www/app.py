@@ -13,7 +13,8 @@ from jinja2 import Environment, FileSystemLoader
 # 从jinja2模板库导入环境与文件系统加载器
 import orm
 from coroweb import add_routes, add_static
-import handlers
+'''import handlers'''
+from handlers import cookie2user, COOKIE_NAME
 
 def init_jinja2(app, **kw): # 选择jinja2作为模板, 初始化模板
 	logging.info('init jinja2...')
@@ -66,6 +67,31 @@ def logger_factory(app, handler):
 		return (yield from handler(request))
 		# handler(request) => RequestHandler(app, fn)(request)
 	return logger
+'''
+# 在处理请求之前,先将cookie解析出来,并将登录用于绑定到request对象上
+# 这样后续的url处理函数就可以直接拿到登录用户
+# 以后的每个请求,都是在这个middle之后处理的,都已经绑定了用户信息
+'''
+@asyncio.coroutine
+def auth_factory(app, handler):
+	@asyncio.coroutine
+	def auth(request):
+		logging.info('check user: %s %s' % (request.method, request.path))
+		request.__user__ = None # 先绑定一个None到请求的__user__属性
+		cookie_str = request.cookies.get(COOKIE_NAME) 
+		# cookie_str就是user2cookie函数的返回值
+		# 通过cookie名取得加密cookie字符串(不明白的看看handlers.py)
+		if cookie_str:
+			user = yield from cookie2user(cookie_str) # 验证cookie,并得到用户信息
+			if user:
+				logging.info('set current user: %s' % user.email)
+				request.__user__ = user # 将用户信息绑定到请求上
+		if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
+			return web.HTTPFound('/signin')
+			# 请求的路径是管理或其下属页面,但用户非管理员,将会重定向到登录页面
+		return (yield from handler(request))
+	return auth 
+
 
 # 解析数据:
 async def data_factory(app, handler):
@@ -123,6 +149,8 @@ async def response_factory(app, handler):
 				# 若不存在对应模板,则将字典调整为json格式返回,并设置响应类型为json 
 				return resp 
 			else:
+				r['__user__'] = request.__user__
+				# 一开始这行没有加上(github有而教程没有)导致右上角不显示用户。
 				resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
 				#app['__templating__'] = env jinja环境
 				#存在对应模板的,则将套用模板,用request handler的结果r进行渲染
@@ -170,7 +198,7 @@ def datetime_filter(t):
 async def init(loop):
 	await orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='www-data', password='www-data', db='awesome')
 	# 创建全局数据库连接池
-	app = web.Application(loop=loop, middlewares=[logger_factory, response_factory])
+	app = web.Application(loop=loop, middlewares=[logger_factory, auth_factory, response_factory])
 	# 创建web应用对象,循环类型是消息循环
 	init_jinja2(app, filters=dict(datetime=datetime_filter))
 	# 设置模板为jiaja2, 并以时间为过滤器

@@ -65,9 +65,10 @@ HTML 图像是通过 <img> 标签进行定义的。图像的名称和尺寸是�
             </ul>
             <div class="uk-navbar-flip">
                 <ul class="uk-navbar-nav">
-                {% if user %}
+                <!--右上角不显示用户名是因为“Day 8 - 构建前端”的“__base__.html”的源码中用的是“user”，而后面的“response_factory”源码传回的是“__user__”，**教程前后的代码不一致**。把你的“__base__.html”中的“user”替换成“__user__”就行了。-->
+                {% if __user__ %}
                     <li class="uk-parent" data-uk-dropdown>
-                        <a href="#0"><i class="uk-icon-user"></i> {{ user.name }}</a> 
+                        <a href="#0"><i class="uk-icon-user"></i> {{ __user__.name }}</a> 
                         <div class="uk-dropdown uk-dropdown-navbar">
                             <ul class="uk-nav uk-nav-navbar">
                                 <li><a href="/signout"><i class="uk-icon-sign-out"></i> 登出</a></li>

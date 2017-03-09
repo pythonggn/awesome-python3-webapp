@@ -205,7 +205,7 @@ class ModelMetaclass(type):
 		# list()方法，形成列表
 		# 收集非主键的属性/方法/列,加上``
 		attrs['__mappings__'] = mappings # 保存属性和列的映射关系，属性映射到列，属性名-->列名
-		# example:  {'__mappings__':{'name':'name', 'score': 'score'}}
+		# example:  {'__mappings__':{'name':StringField, 'score': StringField}}
 		attrs['__table__'] = tableName 
 		attrs['__primary_key__'] = primaryKey #主键属性名
 		attrs['__fields__'] = fields #除主键外的属性名

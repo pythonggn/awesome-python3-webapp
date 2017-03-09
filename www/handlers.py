@@ -5,7 +5,8 @@ __author__ = 'ggn'
 import re, time, json, logging, hashlib, base64, asyncio
 
 import markdown2
-# Markdown是一个轻文本标记语言，它允许你在写的时候使用简单文本格式，然后转换为XHTML（HTML）。Python-markdown2是完全用Python实现的Markdown，与用Perl实现的 Markdown.pl非常接近，同时增加了一些扩展，包括语法高亮等。
+# Markdown是一个轻文本标记语言，它允许你在写的时候使用简单文本格式，然后转换为XHTML（HTML）。
+# Python-markdown2是完全用Python实现的Markdown，与用Perl实现的 Markdown.pl非常接近，同时增加了一些扩展，包括语法高亮等。
 
 from models import User, Comment, Blog, next_id
 # Web App需要的3个表, User, Blog, Comment, 类到表的映射
@@ -14,7 +15,7 @@ from aiohttp import web
 
 from coroweb import get, post 
 # 导入装饰器,这样就能很方便的生成request handler
-from apis import APIValueError, APIResourceNotFoundError
+from apis import Page, APIValueError, APIResourceNotFoundError, APIPermissionError
 from config import configs # 配置
 
 # 此处所列所有的handler都会在app.py中通过add_routes自动注册到app.router上
@@ -24,6 +25,34 @@ from config import configs # 配置
 
 COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret # config_default.py
+
+def check_admin(request): # 验证用户身份
+	# 检查用户是否管理员
+	# 对于已登录的用户,检查其admin属性. 管理员的admin为真
+	if request.__user__ is None or not request.__user__.admin:  
+		raise APIPermissionError()
+	# models.py--admin = BooleanField()
+	# orm.py--BooleanField() default=False
+	'''
+	报错：'Request' object has no attribute '__user__'，解决方法：
+	app.py中：from handlers import cookie2user, COOKIE_NAME,
+	app.py中定义auth_factory(app, handler),  middlewares=[logger_factory, auth_factory, response_factory]
+	本py导入 APIPermissionError，
+	
+	'''
+
+def get_page_index(page_str): # 取得页码
+	p = 1
+	try:
+		p = int(page_str)
+	except ValueError as e:
+		pass
+	if p < 1:
+		p = 1
+	return p 
+	# 将传入的字符串转为页码信息, 实际只是对传入的字符串做了合法性检查
+	# 页码不合法时跳转到第一页
+
 
 # 通过用户信息计算加密cookie:
 def user2cookie(user, max_age):
@@ -38,6 +67,15 @@ def user2cookie(user, max_age):
 	# "用户id" + "过期时间" + SHA1("用户id" + "用户口令" + "过期时间" + "SecretKey")
 	# 服务器可以拿到的信息包括：用户id 过期时间 SHA1值
 	return '-'.join(L)
+
+def text2html(text): # 文本转html
+	lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), filter(lambda s: s.strip() != '', text.split('\n')))
+	# filter()函数接收一个函数 f 和一个list，这个函数 f 的作用是对每个元素进行判断，返回 True或 False，filter()根据判断结果自动过滤掉不符合条件的元素，返回由符合条件元素组成的新list。
+	# 识别文本的\n换行，返回去掉换行后的字符串list及原每行的字符串，通过lambda判断并用filter()过滤掉空字符串/原空行，返回字符串list
+	# replace(old，new) 用new替换old，对filter()返回的字符串list(原每行字符串组成)中每个元素进行替换，返回HTML格式的字符串，即使原每行字符串符合HTML格式
+	# lines返回由HTML格式的段落（由原文本的每行转换）list
+	return ''.join(lines) # '<p>原第1行</p><p>原第2行</p>...'
+
 
 # 解密cookie:
 @asyncio.coroutine
@@ -93,6 +131,23 @@ def index(request):
 		'__template__': 'blogs.html',
 		'blogs': blogs
 	}
+
+@get('/blog/{id}')
+@asyncio.coroutine
+def get_blog(id): # 按id查找显示博客
+	blog = yield from Blog.find(id) # 从数据库中获取博客
+	comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
+	# 评论按博客id查找，按创建时间降序排列
+	for c in comments:
+		c.html_content = text2html(c.content) # 将评论转换为HTML格式内容
+	blog.html_content = markdown2.markdown(blog.content) # 将博客从markdown格式转换为HTML格式内容
+	return {
+		'__template__': 'blog.html', 
+		'blog': blog,
+		'comments': comments
+		# 返回的参数将在jinja2模板中被解析
+	}
+
 
 @get('/register') # 返回注册页面
 def register():
@@ -276,3 +331,39 @@ def signout(request):
 	logging.info('user signed out.')
 	return r 
 
+@get('/manage/blogs/create') # 识别路径
+def manage_create_blog(): # 返回创建编辑博客页面
+	return {
+		'__template__': 'manage_blog_edit.html',
+		'id': '',
+		'action': '/api/blogs'
+	}
+	'''
+	id的值将传给js变量I
+	action的值也将传给js变量action
+	在用户提交博客的时候,将数据post到action指定的路径,此处即为创建博客的api
+	'''
+@get('/api/blogs/{id}') # API方式获取单条博客，机器处理的数据
+@asyncio.coroutine
+def api_get_blog(*, id):
+	blog = yield from Blog.find(id)
+	return blog 
+
+@post('/api/blogs') # API: 创建blog
+@asyncio.coroutine
+def api_creat_blog(request, *, name, summary, content):
+	check_admin(request) # 验证用户身份是否为管理员，不是则报错
+
+	'''
+	#设置管理员权限：windows系统，只要在cmd下用mysql命令给其中一个user的admin值更改为1就可以了：update users set admin=1 where name=某user
+	或进入mysql输入use awesome;     UPDATE users SET admin=TRUE Where email='XXX@XX.COM';
+	'''
+	if not name or not name.strip():
+		raise APIValueError('name', 'name cannot be empty.')
+	if not summary or not summary.strip():
+		raise APIValueError('summary', 'summary cannot be empty.')
+	if not content or not content.strip():
+		raise APIValueError('content', 'content cannot be empty.')
+	blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
+	yield from blog.save()
+	return blog
