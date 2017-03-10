@@ -77,3 +77,7 @@ if __name__ == '__main__':
 	command = argv # 将输入参数赋给command, 之后将用command构建shell 命令
 	path = os.path.abspath('.')  # 获取当前目录的绝对路径表示.'.'表示当前目录
 	start_watch(path, None)
+
+	# cmd中切换目录后执行python pymonitor.py app.py：
+	# cd C:\work\awesome-python3-webapp\www
+	# python pymonitor.py app.py

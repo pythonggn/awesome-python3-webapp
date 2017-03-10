@@ -74,7 +74,8 @@ inspect.Parameter对象的default属性：如果这个参数有默认值，即�
 		if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default == inspect.Parameter.empty:
 			args.append(name)
 			#获取参数名，要求参数类型为KEYWORD_ONLY（命名关键字）且没有默认值
-		return tuple(args) #变成tuple
+	return tuple(args) #变成tuple
+	# 警告！此处return多打了个tab，导致后续严重错误，已改正。
 
 def get_named_kw_args(fn): # 获取命名关键字参数名
 	#named_kw_args 命名 关键字 参数

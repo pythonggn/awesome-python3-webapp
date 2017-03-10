@@ -15,7 +15,8 @@
 			<hr class="uk-article-divider"> 
 			<!--<hr> 标签在 HTML 页面中创建一条水平线。-->
 		{% endfor %}
-		{{ pagination('/?page=', page) }}
+		{{ pagination('/?page=', page) }} 
+		<!--jinja2自定义函数的调用，见__base.html__顶部定义的pagination函数-->
 	</div>
 
 	<div class="uk-width-medium-1-4">

@@ -5,6 +5,7 @@
 <h1> 与 </h1> 之间的文本被显示为标题 Heading
 <p> 与 </p> 之间的文本被显示为段落 paragraph
 HTML 图像是通过 <img> 标签进行定义的。图像的名称和尺寸是以属性的形式提供的。
+下面用jinja2(前端模板)的macro用法定义了一个pagination的函数，不是注释，jinja2引擎只读{和{谐}和}和{和%谐%和}，不管是否在html的注释中。该函数在blogs.html中被调用
 -->
 <!--
 {% macro pagination(url, page) %}
@@ -23,6 +24,7 @@ HTML 图像是通过 <img> 标签进行定义的。图像的名称和尺寸是�
     </ul>
 {% endmacro %}
 -->
+
 <html>
 <head>
     <meta charset="utf-8" />

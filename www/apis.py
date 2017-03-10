@@ -14,8 +14,8 @@ class Page(object): # page对象,用于储存分页信息
 	'''
 	def __init__(self, item_count, page_index=1, page_size=10): # page_index, page_size使用默认参数
 		'''
-		item_count - 博客总数  page_index - 页码 
-		page_size - 每页最多显示博客数
+		item_count - 博客总数/评论总数  page_index - 页码 
+		page_size - 每页最多显示博客数/评论数
 		Init Pagination(页码标注) by item_count, page_index and page_size.
 		>>> p1 = Page(100, 1)
 		>>> p1.page_count

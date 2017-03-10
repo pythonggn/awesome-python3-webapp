@@ -27,7 +27,7 @@ COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret # config_default.py
 
 def check_admin(request): # 验证用户身份
-	# 检查用户是否管理员
+	# 检查用户是否管理员 每个人对自己来说是管理员 对其他人则是用户
 	# 对于已登录的用户,检查其admin属性. 管理员的admin为真
 	if request.__user__ is None or not request.__user__.admin:  
 		raise APIPermissionError()
@@ -114,17 +114,17 @@ def cookie2user(cookie_str):
 		return None
 
 # 通过Web框架的@get和ORM框架的Model支持，可以很容易地编写一个【处理首页URL的函数】：
+
+# 首页：
 # 对于首页的get请求的处理
 @get('/') # 装饰上路径和方法，'/'表示主页
 # @get 把一个函数映射为一个URL处理函数
 # 一个函数通过@get()的装饰就附带了URL信息
 @asyncio.coroutine
 def index(*, page='1'):
-	# summary用于在博客首页上显示的句子
-	summary = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
 	page_index = get_page_index(page) # 取得页码
 	num = yield from Blog.findNumber('count(id)')
-	page = Page(num) # 创建实例，博客总数为num，页码为1，每页最多显示博客数为10
+	page = Page(num, page_index) # 创建实例，博客总数为num，页码为取得的页码，每页最多显示博客数为10
 	if num == 0:
 		blogs = []
 	else:
@@ -135,6 +135,7 @@ def index(*, page='1'):
 		'blogs': blogs # 参数blogs将在jinja2模板中被解析
 	}
 
+# 日志详情页：
 @get('/blog/{id}')
 @asyncio.coroutine
 def get_blog(id): # 按id查找显示博客
@@ -151,13 +152,14 @@ def get_blog(id): # 按id查找显示博客
 		# 返回的参数将在jinja2模板中被解析
 	}
 
-
+# 注册页
 @get('/register') # 返回注册页面
 def register():
 	return {
 		'__template__': 'register.html'
 	}
 
+# 登录页
 @get('/signin') # 返回登录页面
 def signin():
 	return {
@@ -165,29 +167,21 @@ def signin():
 	}
 
 # 用户信息接口,用于返回机器能识别的用户信息
-@get('/api/users')
-async def api_get_users():
-	users = await User.findAll(orderBy='created_at desc') 
-	#orderBy='created_at desc' 刚开始加上这句话会报错,原因是orm.py中sql.append('orderBy')语句错误，正确应为sql.append('order by'),已改正。
-	for u in users:
-		u.password = '******' # 重新赋值'******'，防止密码显示被看见
-	return dict(users=users)
-	# 以dict形式返回,并且未指定__template__,将被app.py的response factory处理为json
-
-'''
-@get('/api/users')
+# 获取用户：
+@get('/api/users') # api路径，访问数据库。
+@asyncio.coroutine
 def api_get_users(*, page='1'):
-	page_index = get_page_index(page)
-	num = yield from User.findNumber('count(id)')
-	p = Page(num, page_index)
+	page_index = get_page_index(page) # 当前页码
+	num = yield from User.findNumber('count(id)') # 总用户数
+	p = Page(num, page_index) # 创建实例，传入参数为：总用户数，当前页码。每页显示用户数取默认值
 	if num == 0:
 		return dict(page=p, users=())
-	users = yield from User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
-	for u in users():
+	users = yield from User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit)) # 当前页范围的所有用户
+	for u in users:
 		u.password = '******'
 	return dict(page=p, users=users)
 	# 只要返回一个dict，后续的response这个middleware就可以把结果序列化为JSON并返回。
-'''
+
 
 # 先通过API把用户注册这个功能实现
 '''
@@ -228,6 +222,7 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 # 匹配邮箱与加密后密码的正则表达式
 
+# 创建新用户：
 @post('/api/users')
 # 实现用户注册的api,注册到/api/users路径上,http method为post
 # 猜测：get('/register')，register()返回注册页面register.html，之后通过交互点击提交按钮之类的，调用post('/api/users')，api_register_user(*, email, name, passwd)提交注册信息，实现用户注册
@@ -326,6 +321,7 @@ def authenticate(*, email, passwd): # 通过邮箱与密码验证登录
 	r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
 	return r
 
+# 注销页：
 @get('/signout')
 def signout(request):
 	referer = request.headers.get('Referer')
@@ -334,6 +330,20 @@ def signout(request):
 	logging.info('user signed out.')
 	return r 
 
+
+@get('/manage/')
+def manage():
+	return 'redirect:/manage/comments' # 重定向
+
+# 评论列表页：
+@get('/manage/comments')
+def manage_comments(*, page='1'):
+	return {
+		'__template__': 'manage_comments.html',
+		'page_index': get_page_index(page)
+	}
+
+# 日志列表页
 @get('/manage/blogs') # 管理博客的页面
 def manage_blogs(*, page='1'):
 	return {
@@ -341,18 +351,92 @@ def manage_blogs(*, page='1'):
 		'page_index': get_page_index(page) #通过page_index来显示分页
 	}
 
+# 创建日志页：
 @get('/manage/blogs/create') # 识别路径
 def manage_create_blog(): # 返回创建编辑博客页面
 	return {
 		'__template__': 'manage_blog_edit.html',
 		'id': '',
-		'action': '/api/blogs'
+		'action': '/api/blogs' 
+		# action含义：用户发送get请求 => 
+		# 返回相应页面 => 
+		# 用户进行操作，提交交互=>
+		# script脚本处理交互，将数据传到action指定API路径，关联数据库。
 	}
 	'''
 	id的值将传给js变量I
 	action的值也将传给js变量action
 	在用户提交博客的时候,将数据post到action指定的路径,此处即为创建博客的api
 	'''
+# 修改日志页：
+@get('/manage/blogs/edit')
+def manage_edit_blog(*, id):
+	return {
+		'__template__': 'manage_blog_edit.html',
+		'id': id, # 警告！此处id打成'id'导致错误
+		'action': '/api/blogs/%s' % id 
+		# action含义：用户发送get请求 => 
+		# 返回相应页面 => 
+		# 用户进行操作，提交交互=>
+		# script脚本处理交互，将数据传到action指定API路径，关联数据库。
+	}
+
+# 用户列表页：
+@get('/manage/users') # 路径含API则负责访问数据库操作数据；否则负责渲染显示网页
+def manage_users(*, page='1'):
+	return {
+		'__template__': 'manage_users.html',
+		'page_index': get_page_index(page) #通过page_index来显示分页
+		# 没有访问数据库需求，不用加action
+	}
+
+# 获取评论：
+@get('/api/comments') # 路径含API则负责访问数据库操作数据；否则负责渲染显示网页
+@asyncio.coroutine
+def api_comments(*, page='1'):
+	page_index = get_page_index(page)
+	num = yield from Comment.findNumber('count(id)') # 总评论数
+	p = Page(num, page_index) # 创建实例，传入评论总数，当前页数。每页显示评论数取默认值。
+	if num == 0:
+		return dict(page=p, comments=())
+	comments = yield from Comment.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+	return dict(page=p, comments=comments)
+
+# 创建评论：
+@post('/api/blogs/{id}/comments') 
+# 路径含API则负责访问数据库操作数据；否则负责渲染显示网页
+@asyncio.coroutine
+def api_create_comment(id, request, *, content):
+	user = request.__user__
+	if user is None: # 用户未登录
+		raise APIPermissionError('Please sign in first.')
+	if not content or not content.strip():
+		raise APIValueError('content')
+	blog = yield from Blog.find(id) # 跳转到指定日志
+	if blog is None:
+		raise APIResourceNotFoundError('Blog')
+	comment = Comment(blog_id=blog.id, user_id=user.id, user_name=user.name, user_image=user.image, content=content.strip())
+	# 创建Comment对象
+	yield from comment.save() # 存入数据库
+	return comment 
+
+# 删除评论：
+@post('/api/comments/{id}/delete')
+# 路径含API则负责访问数据库操作数据；否则负责渲染显示网页
+@asyncio.coroutine
+def api_delete_comments(id, request):
+	check_admin(request)  # 管理员才能删除评论
+	c = yield from Comment.find(id)
+	if c is None:
+		raise APIResourceNotFoundError('Comment')
+	yield from c.remove()
+	return dict(id=id) 
+
+
+
+
+
+
 @get('/api/blogs') # 数据都是通过API操作
 @asyncio.coroutine
 def api_blogs(*, page='1'):
@@ -368,14 +452,15 @@ def api_blogs(*, page='1'):
 	return dict(page=p, blogs=blogs) # 返回字典,将被app.py的response middleware处理
 
 
-
-@get('/api/blogs/{id}') # API方式获取单条博客，机器处理的数据
+# 获取日志：
+@get('/api/blogs/{id}') # API方式获取单条博客，需访问数据库。
 @asyncio.coroutine
 def api_get_blog(*, id):
 	blog = yield from Blog.find(id)
 	return blog 
 
-@post('/api/blogs') # API: 创建blog
+# 创建日志
+@post('/api/blogs') # API方式: 需访问数据库。
 @asyncio.coroutine
 def api_creat_blog(request, *, name, summary, content):
 	check_admin(request) # 验证用户身份是否为管理员，不是则报错
@@ -393,3 +478,76 @@ def api_creat_blog(request, *, name, summary, content):
 	blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
 	yield from blog.save()
 	return blog
+
+# 修改日志：
+@post('/api/blogs/{id}') # API方式，需访问数据库。
+@asyncio.coroutine
+def api_update_blog(id, request, *, name, summary, content):
+	check_admin(request)
+	blog = yield from Blog.find(id)
+	if not name or not name.strip():
+		raise APIValueError('name', 'name cannot be empty.')
+	if not summary or not summary.strip():
+		raise APIValueError('summary', 'summary cannot be empty.')
+	if not content or not content.strip():
+		raise APIValueError('content', 'content cannot be empty.')
+	blog.name = name.strip()
+	blog.summary = summary.strip()
+	blog.content = content.strip()
+	# blog的name, summary, content属性已存在，api_creat_blog创建日志时已赋值，此处为根据传入的参数重新赋值更新。
+	yield from blog.update()
+	return blog 
+
+# 删除日志：
+@post('/api/blogs/{id}/delete') # API路径，访问数据库
+@asyncio.coroutine
+def api_delete_blog(request, *, id):
+	check_admin(request)
+	blog = yield from Blog.find(id)
+	yield from blog.remove()
+	return dict(id=id)
+
+
+
+
+@get('/api/blogs') # API路径，访问数据库
+@asyncio.coroutine
+def api_blogs(*, page='1'): # 命名关键字参数，默认为1
+	page_index = get_page_index(page) # 获取合法页数
+	num = yield from Blog.findNumber('count(id)') # 获取日志总数
+	p = Page(num, page_index) # 创建实例，传入日志总数，当前页数。每页显示日志数取默认值。
+	if num == 0:
+		return dict(page=p, blogs=())
+	blogs = yield from Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+	# 访问数据库，按创建时间降序排列属于当前页的所有日志:
+	# p.offset(前页为止日志数) ~ p.offset+ p.limit(每页最多显示日志数)
+	return dict(page=p, blogs=blogs) # 返回一个字典，在response_factory中处理，生成json格式的内容
+
+'''
+后端API包括：
+获取日志：GET /api/blogs     √
+创建日志：POST /api/blogs 	  
+修改日志：POST /api/blogs/:blog_id 
+删除日志：POST /api/blogs/:blog_id/delete
+获取评论：GET /api/comments  √
+创建评论：POST /api/blogs/:blog_id/comments
+删除评论：POST /api/comments/:comment_id/delete
+创建新用户：POST /api/users √
+获取用户：GET /api/users
+
+管理页面包括：
+评论列表页：GET /manage/comments    √
+日志列表页：GET /manage/blogs       √
+创建日志页：GET /manage/blogs/create   √
+修改日志页：GET /manage/blogs/    此处不成功 但通过网页能访问成功 
+用户列表页：GET /manage/users   √
+
+用户浏览页面包括：
+注册页：GET /register  √
+登录页：GET /signin   √
+注销页：GET /signout √
+首页：GET / √
+日志详情页：GET /blog/:blog_id  √
+
+把所有的功能实现，我们第一个Web App就宣告完成！
+'''
