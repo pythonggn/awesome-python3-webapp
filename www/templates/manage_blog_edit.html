@@ -40,7 +40,7 @@ function initVM(blog) { //初始化ViewModel，关联View和Model
 						$form.ShowFormError(err);
 					}
 					else {
-						return location.assign('/api/blogs/' + r.id);
+						return location.assign('/manage/blogs');
 						//点击按钮提交 => js脚本的postJSON函数把数据(id为vm的DOM)传出去 => @post('/api/blogs') 的处理函数把数据写进数据库，然后把生成的blog id用json传回 => 最后postJSON的第三个参数的回调函数接收到blog id的值，再用location.assign函数重定向到新建的日志网址
 						// return location.assign('/api/blogs/' + r.id);返回json格式内容；
 						// return location.assign('/');则返回日志列表

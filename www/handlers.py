@@ -118,18 +118,21 @@ def cookie2user(cookie_str):
 @get('/') # 装饰上路径和方法，'/'表示主页
 # @get 把一个函数映射为一个URL处理函数
 # 一个函数通过@get()的装饰就附带了URL信息
-def index(request):
+@asyncio.coroutine
+def index(*, page='1'):
 	# summary用于在博客首页上显示的句子
 	summary = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-	# 这里只是手动写了blogs的list, 并没有真的将其存入数据库
-	blogs = [
-		Blog(id='1', name='Test Blog', summary=summary, created_at=time.time()-120),
-		Blog(id='2', name='Something New', summary=summary, created_at=time.time()-3600),
-		Blog(id='3', name='Learn Swift', summary=summary, created_at=time.time()-7200)
-	]
+	page_index = get_page_index(page) # 取得页码
+	num = yield from Blog.findNumber('count(id)')
+	page = Page(num) # 创建实例，博客总数为num，页码为1，每页最多显示博客数为10
+	if num == 0:
+		blogs = []
+	else:
+		blogs = yield from Blog.findAll(orderBy='created_at desc', limit=(page.offset, page.limit))	
 	return {
 		'__template__': 'blogs.html',
-		'blogs': blogs
+		'page': page,
+		'blogs': blogs # 参数blogs将在jinja2模板中被解析
 	}
 
 @get('/blog/{id}')
@@ -331,6 +334,13 @@ def signout(request):
 	logging.info('user signed out.')
 	return r 
 
+@get('/manage/blogs') # 管理博客的页面
+def manage_blogs(*, page='1'):
+	return {
+		'__template__': 'manage_blogs.html',
+		'page_index': get_page_index(page) #通过page_index来显示分页
+	}
+
 @get('/manage/blogs/create') # 识别路径
 def manage_create_blog(): # 返回创建编辑博客页面
 	return {
@@ -343,6 +353,22 @@ def manage_create_blog(): # 返回创建编辑博客页面
 	action的值也将传给js变量action
 	在用户提交博客的时候,将数据post到action指定的路径,此处即为创建博客的api
 	'''
+@get('/api/blogs') # 数据都是通过API操作
+@asyncio.coroutine
+def api_blogs(*, page='1'):
+	page_index = get_page_index(page) 
+	# 将传入的字符串转为页码信息, 实际只是对传入的字符串做了合法性检查
+	# 页码不合法时跳转到第一页
+	num = yield from Blog.findNumber('count(id)')
+	p = Page(num, page_index) # 博客总数 当前页数
+	if num == 0: # 若博客数为0,返回字典,将被app.py的response middleware再处理
+		return dict(page=p, blogs=())
+	blogs = yield from Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+	# 降序，limit=(前页为止博客数，每页限制博客数),即显示当页博客。 SELECT * FROM table LIMIT 5,10;  检索记录行 6-15
+	return dict(page=p, blogs=blogs) # 返回字典,将被app.py的response middleware处理
+
+
+
 @get('/api/blogs/{id}') # API方式获取单条博客，机器处理的数据
 @asyncio.coroutine
 def api_get_blog(*, id):
